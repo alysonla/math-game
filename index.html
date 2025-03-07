@@ -1,0 +1,203 @@
+import React, { useState, useEffect } from 'react';
+
+const MathRaceGame = () => {
+  const [gameState, setGameState] = useState('start'); // start, playing, finished
+  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [currentProblem, setCurrentProblem] = useState({ question: '', answer: 0 });
+  const [userAnswer, setUserAnswer] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const [carPosition, setCarPosition] = useState(0);
+  const [difficultyLevel, setDifficultyLevel] = useState('easy');
+  
+  // Generate a random math problem based on difficulty
+  const generateProblem = () => {
+    let num1, num2, operation, question, answer;
+    
+    if (difficultyLevel === 'easy') {
+      num1 = Math.floor(Math.random() * 10) + 1;
+      num2 = Math.floor(Math.random() * 10) + 1;
+      operation = Math.random() > 0.5 ? '+' : '-';
+      
+      // Make sure subtraction doesn't result in negative numbers
+      if (operation === '-' && num2 > num1) {
+        [num1, num2] = [num2, num1];
+      }
+    } else {
+      num1 = Math.floor(Math.random() * 20) + 1;
+      num2 = Math.floor(Math.random() * 20) + 1;
+      operation = Math.random() > 0.5 ? '+' : '-';
+      
+      // Make sure subtraction doesn't result in negative numbers
+      if (operation === '-' && num2 > num1) {
+        [num1, num2] = [num2, num1];
+      }
+    }
+    
+    question = `${num1} ${operation} ${num2} = ?`;
+    answer = operation === '+' ? num1 + num2 : num1 - num2;
+    
+    setCurrentProblem({ question, answer });
+  };
+  
+  // Start the game
+  const startGame = () => {
+    setGameState('playing');
+    setScore(0);
+    setTimeLeft(60);
+    setCarPosition(0);
+    generateProblem();
+  };
+  
+  // Submit an answer
+  const submitAnswer = () => {
+    const numAnswer = parseInt(userAnswer);
+    
+    if (numAnswer === currentProblem.answer) {
+      setScore(score + 1);
+      setFeedback('Correct! 🎉');
+      setCarPosition(carPosition + 10);
+      
+      // Move to next problem
+      generateProblem();
+      setUserAnswer('');
+    } else {
+      setFeedback('Try again! 🤔');
+    }
+  };
+  
+  // Handle input change
+  const handleInputChange = (e) => {
+    setUserAnswer(e.target.value);
+  };
+  
+  // Handle key press
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && userAnswer !== '') {
+      submitAnswer();
+    }
+  };
+  
+  // Handle difficulty change
+  const changeDifficulty = (level) => {
+    setDifficultyLevel(level);
+  };
+  
+  // Timer effect
+  useEffect(() => {
+    if (gameState === 'playing') {
+      const timer = setInterval(() => {
+        setTimeLeft((prevTime) => {
+          if (prevTime <= 1) {
+            clearInterval(timer);
+            setGameState('finished');
+            return 0;
+          }
+          return prevTime - 1;
+        });
+      }, 1000);
+      
+      return () => clearInterval(timer);
+    }
+  }, [gameState]);
+  
+  return (
+    <div className="bg-blue-100 p-6 rounded-lg shadow-md max-w-md mx-auto">
+      {gameState === 'start' && (
+        <div className="text-center">
+          <h1 className="text-3xl font-bold text-blue-600 mb-4">Math Race!</h1>
+          <p className="mb-4">Solve math problems to move your car to the finish line!</p>
+          
+          <div className="mb-4">
+            <p className="font-bold mb-2">Choose difficulty:</p>
+            <div className="flex justify-center gap-4">
+              <button 
+                className={`px-4 py-2 rounded ${difficultyLevel === 'easy' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => changeDifficulty('easy')}
+              >
+                Easy
+              </button>
+              <button 
+                className={`px-4 py-2 rounded ${difficultyLevel === 'medium' ? 'bg-yellow-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => changeDifficulty('medium')}
+              >
+                Medium
+              </button>
+            </div>
+          </div>
+          
+          <button 
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transform transition duration-200 hover:scale-105"
+            onClick={startGame}
+          >
+            Start Game!
+          </button>
+        </div>
+      )}
+      
+      {gameState === 'playing' && (
+        <div className="text-center">
+          <div className="flex justify-between mb-4">
+            <div className="bg-green-500 text-white px-3 py-1 rounded">Score: {score}</div>
+            <div className="bg-red-500 text-white px-3 py-1 rounded">Time: {timeLeft}s</div>
+          </div>
+          
+          <div className="bg-white p-6 rounded-lg shadow mb-4">
+            <h2 className="text-2xl font-bold mb-4">{currentProblem.question}</h2>
+            <input
+              type="number"
+              value={userAnswer}
+              onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
+              className="border-2 border-gray-300 rounded p-2 text-center text-xl w-20"
+              autoFocus
+            />
+            <button 
+              onClick={submitAnswer}
+              disabled={userAnswer === ''}
+              className="ml-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded disabled:opacity-50"
+            >
+              Check
+            </button>
+            {feedback && (
+              <p className={`mt-2 text-lg ${feedback.includes('Correct') ? 'text-green-600' : 'text-red-600'}`}>
+                {feedback}
+              </p>
+            )}
+          </div>
+          
+          <div className="bg-gray-200 h-8 rounded-full overflow-hidden mb-4">
+            <div 
+              className="bg-blue-600 h-full rounded-full transition-all duration-500 flex items-center justify-end pr-2"
+              style={{ width: `${Math.min(carPosition, 100)}%` }}
+            >
+              🚗
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {gameState === 'finished' && (
+        <div className="text-center">
+          <h2 className="text-3xl font-bold text-blue-600 mb-4">Game Over!</h2>
+          <p className="text-xl mb-6">Your score: {score}</p>
+          {score > 10 ? (
+            <p className="text-green-600 font-bold mb-4">Amazing job! You're a math superstar! ⭐</p>
+          ) : score > 5 ? (
+            <p className="text-blue-600 font-bold mb-4">Great work! Keep practicing! 👍</p>
+          ) : (
+            <p className="text-purple-600 font-bold mb-4">Good try! You'll get better with practice! 😊</p>
+          )}
+          <button 
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transform transition duration-200 hover:scale-105"
+            onClick={startGame}
+          >
+            Play Again
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MathRaceGame;
